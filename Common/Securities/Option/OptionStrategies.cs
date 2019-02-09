@@ -373,5 +373,43 @@ namespace QuantConnect.Securities.Option
             };
         }
 
+        /// <summary>
+        /// Method creates new Iron Condor strategy, that consists of short call spread and short put spread (same expiration)
+        /// </summary>
+        /// <param name="canonicalOption">Option symbol</param>
+        /// <param name="leg1Strike">Strike of the Long Call</param>
+        /// <param name="leg2Strike">Strike of the Short Call</param>
+        /// <param name="leg3Strike">Strike of the Short Put</param>
+        /// <param name="leg4Strike">Strike of the Long Put</param>
+        /// <param name="expiration">Option expiration date</param>
+        /// <returns>Option strategy specification</returns>
+        public static OptionStrategy IronCondor(Symbol canonicalOption, decimal leg1Strike, decimal leg2Strike, decimal leg3Strike, decimal leg4Strike, DateTime expiration)
+        {
+            if (!canonicalOption.HasUnderlying ||
+                canonicalOption.ID.StrikePrice != 0.0m)
+                throw new ArgumentException("IronCondor: canonicalOption must contain canonical option symbol", "canonicalOption");
+
+            if (leg2Strike >= leg1Strike ||
+                leg3Strike >= leg2Strike ||
+                leg4Strike >= leg3Strike)
+                throw new ArgumentException("IronCondor: strikes overlap", "leg1Strike, leg2Strike, leg3Strike, leg4Strike");
+
+            if (expiration == DateTime.MaxValue ||
+                expiration == DateTime.MinValue)
+                throw new ArgumentException("IronCondor: expiration must contain expiration date", "expiration");
+
+            return new OptionStrategy
+            {
+                Name = "Iron Condor",
+                Underlying = canonicalOption.Underlying,
+                OptionLegs = new List<OptionStrategy.OptionLegData>
+                                        {
+                                            new OptionStrategy.OptionLegData { Right = OptionRight.Call, Strike = leg1Strike, Quantity = 1, OrderType = Orders.OrderType.Market, Expiration = expiration },
+                                            new OptionStrategy.OptionLegData { Right = OptionRight.Call, Strike = leg2Strike, Quantity = -1, OrderType = Orders.OrderType.Market, Expiration = expiration },
+                                            new OptionStrategy.OptionLegData { Right = OptionRight.Put, Strike = leg3Strike, Quantity = -1, OrderType = Orders.OrderType.Market, Expiration = expiration },
+                                            new OptionStrategy.OptionLegData { Right = OptionRight.Put, Strike = leg4Strike, Quantity = 1, OrderType = Orders.OrderType.Market, Expiration = expiration }
+                                        }
+            };
+        }
     }
 }
